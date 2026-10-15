@@ -1,6 +1,6 @@
 {
   "name": "x-geoblock",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "Browser extension that hides X posts based on account country.",
   "scripts": {
