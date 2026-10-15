@@ -5,12 +5,14 @@ X GeoBlock is a Manifest V3 browser extension for Chromium and Firefox. While yo
 ## Features
 
 - Processes posts already on the page and posts loaded by infinite scrolling.
-- Performs authenticated About-page requests in the extension service worker.
-- Caches account results locally for a configurable period (seven days by default).
+- Uses X's authenticated `AboutAccountQuery` from the current page session. HTML parsing and an invisible same-origin `/about` frame remain as fallbacks, without opening tabs or windows.
+- Caches account results locally for 30 days, with manual clearing available.
 - Coalesces duplicate lookups and spaces network requests to reduce load on X.
-- Skips followed accounts.
-- Provides a configurable country blacklist, an enable switch, and optional hidden-post placeholders.
-- Stores all settings and lookup results in browser extension storage. No data is sent to third parties.
+- Skips followed accounts by default, with a setting to apply the blocklist to them as well.
+- Provides a searchable country and region checklist with flags, an enable switch, and optional hidden-post placeholders.
+- Includes opt-in debug logging for every lookup and filtering decision.
+- By default, stores all settings and lookup results only in browser extension storage. No data is sent to third parties unless cloud contribution is explicitly enabled.
+- Uses the project Cloudflare Worker + D1 collaborative cache at `x-geoblock-cache.dariosevilla.es`, with signed contributions and three-installation consensus. Contributions are enabled by default and can be disabled in settings.
 
 ## Install from source in Chromium
 
@@ -18,7 +20,7 @@ X GeoBlock is a Manifest V3 browser extension for Chromium and Firefox. While yo
 2. Enable **Developer mode**.
 3. Select **Load unpacked** and choose this repository directory.
 4. Sign in to `https://x.com` and browse normally.
-5. Open the extension settings to review the default blacklist.
+5. Open the extension settings and select the countries you want to block. No country is selected by default.
 
 No build step or dependency installation is required.
 
@@ -41,19 +43,21 @@ npm run check
 npm run build
 ```
 
-After editing a file, reload the extension and refresh the X tab. See [Architecture](docs/architecture.md), [Releases](docs/releases.md), [Privacy](docs/privacy.md), and [Contributing](CONTRIBUTING.md).
+After editing a file, reload the extension and refresh the X tab. See [Architecture](docs/architecture.md), [Cloud cache](docs/cloud-cache.md), [Releases](docs/releases.md), [Privacy](docs/privacy.md), and [Contributing](CONTRIBUTING.md).
 
 ## Limitations
 
 X does not publish a stable API for the country shown on the About page. The extension parses X's HTML and embedded page data, so a markup change can temporarily prevent detection. An unknown country leaves the post visible. Requests use your existing X session and are subject to X's rate limits.
 
-The default blacklist is an editable starting point: Belarus, China, Iran, North Korea, and Russia. Inclusion is a local user preference and does not assert anything about individual account holders.
+The location picker contains the ISO 3166-1 countries, plus Kosovo, using English CLDR display names. It also includes the broader English region labels exposed by X, such as `West Asia`, alongside country labels such as `United Kingdom`. Inclusion is a local user preference and does not assert anything about individual account holders.
 
 ## Permissions
 
 - `storage`: saves settings and the local user cache.
 - `offscreen`: parses returned HTML without opening visible tabs.
+- `declarativeNetRequestWithHostAccess`: removes anti-framing response headers only from `x.com/*/about` subframe requests so the fallback can render.
 - `https://x.com/*`: reads About pages and runs the feed filter on X.
+- `https://x-geoblock-cache.dariosevilla.es/*`: looks up confirmed shared location results and submits observations only when contribution is enabled.
 
 ## License
 

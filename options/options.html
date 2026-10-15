@@ -1,15 +1,44 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>X GeoBlock settings</title><link rel="stylesheet" href="options.css"></head>
-<body><main>
-  <h1>X GeoBlock</h1><p class="lead">Hide posts based on the country shown in an account's About page.</p>
-  <form id="settings">
-    <label class="check"><input id="enabled" type="checkbox"> Enable filtering</label>
-    <label for="blacklist">Blocked countries</label>
-    <p class="hint">Enter one country per line, exactly as X displays it.</p>
-    <textarea id="blacklist" rows="10" spellcheck="false"></textarea>
-    <label for="ttl">Cache duration (hours)</label><input id="ttl" type="number" min="1" max="8760">
-    <label class="check"><input id="placeholder" type="checkbox"> Show a clickable placeholder for hidden posts</label>
-    <div class="actions"><button type="submit">Save settings</button><button type="button" class="secondary" id="clear">Clear user cache</button></div>
-    <p id="status" role="status"></p>
-  </form>
-</main><script src="../lib/config.js"></script><script src="options.js"></script></body></html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>X GeoBlock // Control panel</title><link rel="stylesheet" href="options.css"></head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <main>
+    <header class="masthead">
+      <div class="identity"><div class="logo-shell"><img src="../icons/icon.png" alt=""></div><div><h1>X GeoBlock</h1><p class="lead">Location filtering for your X timeline.</p></div></div>
+      <div class="system-state"><span class="state-dot"></span><strong>Operational</strong></div>
+    </header>
+
+    <form id="settings">
+      <section class="panel master-panel">
+        <div class="panel-copy"><h2>Filtering</h2><p>Apply location rules as posts load.</p></div>
+        <label class="switch" for="enabled"><input id="enabled" type="checkbox"><span class="track"><span></span></span><b>Enabled</b></label>
+      </section>
+
+      <section class="panel">
+        <div class="section-head"><div><h2>Blocked locations</h2><p class="hint">Countries and regions reported by X.</p></div><div class="counter" id="selection-count">0 locations selected</div></div>
+        <div class="country-tools"><label class="search-shell"><span aria-hidden="true">⌕</span><input id="country-search" type="search" placeholder="Search locations…" autocomplete="off"></label><button type="button" class="ghost" id="clear-selection">Clear</button></div>
+        <div id="country-list" class="country-list"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head"><div><h2>Behavior</h2></div></div>
+        <div class="setting-grid">
+          <label class="setting-card"><input id="placeholder" type="checkbox"><span class="checkmark"></span><span><strong>Reveal controls</strong><small>Show a marker for hidden posts.</small></span></label>
+          <label class="setting-card"><input id="debug-mode" type="checkbox"><span class="checkmark"></span><span><strong>Debug logging</strong><small>Log activity in the X console.</small></span></label>
+          <label class="setting-card"><input id="skip-followed" type="checkbox"><span class="checkmark"></span><span><strong>Ignore followed accounts</strong><small>Always allow accounts you follow.</small></span></label>
+        </div>
+      </section>
+
+      <section class="panel cloud-panel">
+        <div class="section-head"><div><h2>Cloud cache</h2><p class="hint">Shared results reduce requests to X.</p></div><span class="connected"><i></i>Connected</span></div>
+        <div class="endpoint"><code>x-geoblock-cache.dariosevilla.es</code></div>
+        <label class="setting-card contribution"><input id="cloud-contribute" type="checkbox"><span class="checkmark"></span><span><strong>Contribute observations</strong><small>Share hashed usernames and detected locations.</small></span></label>
+      </section>
+
+      <footer class="actions"><div><button type="submit" class="primary">Save settings</button><button type="button" class="danger" id="clear">Clear cache</button></div><p id="status" role="status"></p></footer>
+    </form>
+  </main>
+  <script src="../lib/config.js"></script><script src="../lib/countries.js"></script><script src="../lib/cloud-cache.js"></script><script src="options.js"></script>
+</body>
+</html>

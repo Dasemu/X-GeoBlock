@@ -5,11 +5,17 @@
   "description": "Browser extension that hides X posts based on account country.",
   "scripts": {
     "test": "node --test",
-    "check": "node --check background.js && node --check content.js && node --check lib/config.js && node --check lib/parser.js && node --check offscreen/offscreen.js && node --check options/options.js && node --check popup/popup.js && node --check scripts/build.mjs && node --check scripts/bump-version.mjs && node --test",
-    "build": "node scripts/build.mjs"
+    "check": "node --check background.js && node --check content.js && node --check page-bridge.js && node --check lib/config.js && node --check lib/countries.js && node --check lib/cloud-cache.js && node --check lib/parser.js && node --check offscreen/offscreen.js && node --check options/options.js && node --check popup/popup.js && node --check scripts/build.mjs && node --check scripts/bump-version.mjs && node --check worker/src/index.js && node --test",
+    "build": "node scripts/build.mjs",
+    "worker:migrate": "npx wrangler d1 migrations apply x-geoblock-cache --remote --config worker/wrangler.toml",
+    "worker:deploy": "npx wrangler deploy --config worker/wrangler.toml",
+    "worker:tail": "npx wrangler tail --config worker/wrangler.toml"
   },
   "engines": {
     "node": ">=18"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "linkedom": "^0.18.12"
+  }
 }

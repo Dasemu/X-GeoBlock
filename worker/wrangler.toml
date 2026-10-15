@@ -1,0 +1,15 @@
+name = "x-geoblock-cache"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "x-geoblock-cache"
+database_id = "replace-with-your-d1-database-id"
+migrations_dir = "migrations"
+
+[vars]
+CONFIRMATION_THRESHOLD = "3"
+CONFIRMED_TTL_DAYS = "30"
+OBSERVATION_RETENTION_DAYS = "90"
+PENDING_RETENTION_DAYS = "7"
