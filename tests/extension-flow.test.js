@@ -8,7 +8,7 @@ const parser = require("../lib/parser.js");
 const contentSource = fs.readFileSync(require.resolve("../content.js"), "utf8");
 const pageBridgeSource = fs.readFileSync(require.resolve("../page-bridge.js"), "utf8");
 
-function createContext(html, pathname, sendMessage) {
+function createContext(html, pathname, sendMessage, storedSettings = {}) {
   const { window, document } = parseHTML(html);
   const runtimeListeners = [];
   const context = {
@@ -16,7 +16,7 @@ function createContext(html, pathname, sendMessage) {
     location: { pathname, href: `https://x.com${pathname}`, origin: "https://x.com" },
     chrome: {
       storage: {
-        sync: { get: async (defaults) => ({ ...defaults, enabled: true, blacklist: ["United States"] }) },
+        sync: { get: async (defaults) => ({ ...defaults, enabled: true, blacklist: ["United States"], ...storedSettings }) },
         onChanged: { addListener() {} }
       },
       runtime: {
@@ -76,20 +76,26 @@ test("blacklisted profile owner post is hidden", async () => {
   const { document } = createContext(`
     <main data-testid="primaryColumn">
       <button data-testid="ShitskinBlud-follow">Follow</button>
-      <div data-testid="cellInnerDiv"><article>
+      <div data-testid="cellInnerDiv"><div class="x-wrapper"><article>
         <a href="/ShitskinBlud/status/2110603064012918829">post</a>
-      </article></div>
+      </article></div></div>
     </main>`, "/ShitskinBlud/with_replies", async (message) => {
       assert.equal(message.type, "lookup-user");
       assert.equal(message.username, "ShitskinBlud");
       assert.equal(message.followingHint, false);
       return { ok: true, country: "United States", following: false, blocked: true };
-    });
+    }, { showPlaceholder: true });
   await new Promise((resolve) => setTimeout(resolve, 20));
   const article = document.querySelector("article");
   assert.equal(article.dataset.xGeoBlockState, "blocked");
   assert.equal(article.dataset.xGeoBlockCountry, "United States");
-  assert.equal(article.closest('[data-testid="cellInnerDiv"]').classList.contains("x-geoblock-hidden"), true);
+  const container = article.closest('[data-testid="cellInnerDiv"]');
+  assert.equal(container.classList.contains("x-geoblock-hidden"), true);
+  assert.equal(container.querySelector(":scope > :not(.x-geoblock-placeholder)"), article.parentElement);
+  const placeholder = container.querySelector(":scope > .x-geoblock-placeholder");
+  assert.ok(placeholder);
+  placeholder.click();
+  assert.equal(container.classList.contains("x-geoblock-revealed"), true);
 });
 
 test("page bridge performs the authenticated AboutAccountQuery", async () => {
