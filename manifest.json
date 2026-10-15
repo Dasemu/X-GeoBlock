@@ -1,18 +1,29 @@
 {
   "manifest_version": 3,
   "name": "X GeoBlock",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Hide posts from X accounts based in countries you choose.",
-  "permissions": ["storage", "offscreen"],
-  "host_permissions": ["https://x.com/*"],
+  "permissions": [
+    "storage",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "https://x.com/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["https://x.com/*"],
-      "js": ["content.js"],
-      "css": ["content.css"],
+      "matches": [
+        "https://x.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
       "run_at": "document_idle"
     }
   ],
