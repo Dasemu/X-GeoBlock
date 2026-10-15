@@ -11,8 +11,10 @@ if (!new Set(["patch", "minor"]).has(kind)) {
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = resolve(root, "manifest.json");
 const packagePath = resolve(root, "package.json");
+const packageLockPath = resolve(root, "package-lock.json");
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
 const packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
+const packageLock = JSON.parse(readFileSync(packageLockPath, "utf8"));
 const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(manifest.version);
 if (!match) throw new Error(`Unsupported version: ${manifest.version}`);
 
@@ -26,6 +28,9 @@ if (kind === "minor") {
 const version = `${major}.${minor}.${patch}`;
 manifest.version = version;
 packageJson.version = version;
+packageLock.version = version;
+packageLock.packages[""].version = version;
 writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
+writeFileSync(packageLockPath, `${JSON.stringify(packageLock, null, 2)}\n`);
 console.log(version);

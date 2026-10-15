@@ -22,6 +22,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run checks
+        run: npm run check
+
       - name: Detect release type
         id: release_type
         env:
@@ -47,13 +59,10 @@ jobs:
           git checkout main
           git pull --ff-only origin main
           version="$(node scripts/bump-version.mjs "$RELEASE_KIND")"
-          git add manifest.json package.json
+          git add manifest.json package.json package-lock.json
           git commit -m "chore(release): v${version} [skip release]"
           git push origin main
           echo "version=$version" >> "$GITHUB_OUTPUT"
-
-      - name: Run checks
-        run: npm run check
 
       - name: Build browser packages
         run: npm run build
