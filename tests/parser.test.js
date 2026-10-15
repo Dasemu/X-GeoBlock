@@ -31,6 +31,8 @@ test("normalizes country aliases", () => {
 test("uses the production collaborative cache endpoint", () => {
   assert.equal(config.CLOUD_CACHE_ENDPOINT, "https://x-geoblock-cache.dariosevilla.es");
   assert.equal(config.DEFAULT_SETTINGS.cloudCacheEndpoint, config.CLOUD_CACHE_ENDPOINT);
+  assert.equal(config.DEFAULT_SETTINGS.contributeCloudCache, true);
+  assert.equal(config.DEFAULT_SETTINGS.showPlaceholder, true);
 });
 test("followed-account exemption is configurable", () => {
   assert.equal(config.shouldBlock("Lebanon", ["Lebanon"], true, true), false);

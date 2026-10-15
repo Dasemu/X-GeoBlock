@@ -1,7 +1,7 @@
-:root { color-scheme: dark; font: 14px/1.45 Inter, ui-sans-serif, system-ui, sans-serif; --bg:#070b10; --panel:#0d141c; --line:#1c2b38; --cyan:#45e6ff; --lime:#adff2f; --muted:#78909f; }
+:root { color-scheme: dark; font: 14px/1.45 Inter, ui-sans-serif, system-ui, sans-serif; --bg:#0a0e13; --panel:#121b22; --line:#2a3a45; --cyan:#58ddf2; --lime:#b7f45b; --muted:#a0afb7; }
 * { box-sizing:border-box; }
 body { margin:0; min-width:340px; background:var(--bg); color:#edfaff; }
-body::before { content:""; position:fixed; inset:0; pointer-events:none; opacity:.24; background-image:linear-gradient(rgba(69,230,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(69,230,255,.07) 1px,transparent 1px); background-size:24px 24px; mask-image:linear-gradient(to bottom,#000,transparent 72%); }
+body::before { content:""; position:fixed; inset:0; pointer-events:none; opacity:.12; background-image:linear-gradient(rgba(69,230,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(69,230,255,.07) 1px,transparent 1px); background-size:24px 24px; mask-image:linear-gradient(to bottom,#000,transparent 72%); }
 main { position:relative; padding:20px; }
 .brand { display:flex; align-items:center; gap:11px; margin-bottom:18px; }
 .logo-shell { width:43px; height:43px; display:grid; place-items:center; border:1px solid #244253; border-radius:11px; background:linear-gradient(145deg,#132430,#081016); box-shadow:0 0 24px rgba(69,230,255,.09); }

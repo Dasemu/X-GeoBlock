@@ -3,6 +3,7 @@ if (typeof XGeoConfig === "undefined") importScripts("lib/config.js", "lib/cloud
 const extensionApi = globalThis.browser || chrome;
 
 const CACHE_KEY = "userCache";
+const DEFAULTS_MIGRATION_KEY = "defaultsV2Applied";
 const LOCAL_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const activeRequests = new Map();
 const pendingFrameLookups = new Map();
@@ -12,8 +13,15 @@ let lastRequestAt = 0;
 const MAX_CONCURRENT_REQUESTS = 3;
 
 extensionApi.runtime.onInstalled.addListener(async () => {
-  const current = await extensionApi.storage.sync.get(XGeoConfig.DEFAULT_SETTINGS);
-  await extensionApi.storage.sync.set(current);
+  const current = await extensionApi.storage.sync.get(null);
+  const local = await extensionApi.storage.local.get({ [DEFAULTS_MIGRATION_KEY]: false });
+  const next = { ...XGeoConfig.DEFAULT_SETTINGS, ...current, cloudCacheEndpoint: XGeoConfig.CLOUD_CACHE_ENDPOINT };
+  if (!local[DEFAULTS_MIGRATION_KEY]) {
+    next.showPlaceholder = true;
+    next.contributeCloudCache = true;
+    await extensionApi.storage.local.set({ [DEFAULTS_MIGRATION_KEY]: true });
+  }
+  await extensionApi.storage.sync.set(next);
 });
 
 extensionApi.runtime.onMessage.addListener((message, sender, sendResponse) => {

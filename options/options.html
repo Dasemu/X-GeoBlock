@@ -5,39 +5,38 @@
   <div class="noise" aria-hidden="true"></div>
   <main>
     <header class="masthead">
-      <div class="identity"><div class="logo-shell"><img src="../icons/icon.png" alt=""></div><div><p class="kicker">XGB // CONTROL SYSTEM</p><h1>X GeoBlock</h1><p class="lead">Geographic signal filtering for your X timeline.</p></div></div>
-      <div class="system-state"><span class="state-dot"></span><div><small>SYSTEM STATUS</small><strong>OPERATIONAL</strong></div></div>
+      <div class="identity"><div class="logo-shell"><img src="../icons/icon.png" alt=""></div><div><h1>X GeoBlock</h1><p class="lead">Location filtering for your X timeline.</p></div></div>
+      <div class="system-state"><span class="state-dot"></span><strong>Operational</strong></div>
     </header>
 
     <form id="settings">
       <section class="panel master-panel">
-        <div class="panel-index">01</div>
-        <div class="panel-copy"><p class="section-tag">CORE</p><h2>Filter engine</h2><p>Analyze posts as they enter the timeline and apply your location rules.</p></div>
-        <label class="switch" for="enabled"><input id="enabled" type="checkbox"><span class="track"><span></span></span><b>ACTIVE</b></label>
+        <div class="panel-copy"><h2>Filtering</h2><p>Apply location rules as posts load.</p></div>
+        <label class="switch" for="enabled"><input id="enabled" type="checkbox"><span class="track"><span></span></span><b>Enabled</b></label>
       </section>
 
       <section class="panel">
-        <div class="section-head"><div><p class="section-tag">02 // TARGET MATRIX</p><h2>Blocked locations</h2><p class="hint">Select countries or broader regions reported by X. The list starts empty.</p></div><div class="counter" id="selection-count">0 locations selected</div></div>
-        <div class="country-tools"><label class="search-shell"><span aria-hidden="true">⌕</span><input id="country-search" type="search" placeholder="Search location database…" autocomplete="off"></label><button type="button" class="ghost" id="clear-selection">CLEAR ALL</button></div>
+        <div class="section-head"><div><h2>Blocked locations</h2><p class="hint">Countries and regions reported by X.</p></div><div class="counter" id="selection-count">0 locations selected</div></div>
+        <div class="country-tools"><label class="search-shell"><span aria-hidden="true">⌕</span><input id="country-search" type="search" placeholder="Search locations…" autocomplete="off"></label><button type="button" class="ghost" id="clear-selection">Clear</button></div>
         <div id="country-list" class="country-list"></div>
       </section>
 
       <section class="panel">
-        <div class="section-head"><div><p class="section-tag">03 // BEHAVIOR</p><h2>Interface controls</h2></div></div>
+        <div class="section-head"><div><h2>Behavior</h2></div></div>
         <div class="setting-grid">
-          <label class="setting-card"><input id="placeholder" type="checkbox"><span class="checkmark"></span><span><strong>Reveal controls</strong><small>Show a clickable marker where a post was hidden.</small></span></label>
-          <label class="setting-card"><input id="debug-mode" type="checkbox"><span class="checkmark"></span><span><strong>Diagnostic stream</strong><small>Write detailed activity to the X page console.</small></span></label>
-          <label class="setting-card"><input id="skip-followed" type="checkbox"><span class="checkmark"></span><span><strong>Ignore followed accounts</strong><small>Always allow posts from accounts you follow.</small></span></label>
+          <label class="setting-card"><input id="placeholder" type="checkbox"><span class="checkmark"></span><span><strong>Reveal controls</strong><small>Show a marker for hidden posts.</small></span></label>
+          <label class="setting-card"><input id="debug-mode" type="checkbox"><span class="checkmark"></span><span><strong>Debug logging</strong><small>Log activity in the X console.</small></span></label>
+          <label class="setting-card"><input id="skip-followed" type="checkbox"><span class="checkmark"></span><span><strong>Ignore followed accounts</strong><small>Always allow accounts you follow.</small></span></label>
         </div>
       </section>
 
       <section class="panel cloud-panel">
-        <div class="section-head"><div><p class="section-tag">04 // DISTRIBUTED CACHE</p><h2>Cloud relay</h2><p class="hint">Confirmed shared results reduce requests to X. Reads are enabled automatically.</p></div><span class="connected"><i></i>CONNECTED</span></div>
-        <div class="endpoint"><span>ENDPOINT</span><code>x-geoblock-cache.dariosevilla.es</code><span class="lock" aria-label="Fixed endpoint">LOCKED</span></div>
-        <label class="setting-card contribution"><input id="cloud-contribute" type="checkbox"><span class="checkmark"></span><span><strong>Contribute observations</strong><small>Send a SHA-256 username hash and observed location. Following data, posts and your blocklist stay local.</small></span></label>
+        <div class="section-head"><div><h2>Cloud cache</h2><p class="hint">Shared results reduce requests to X.</p></div><span class="connected"><i></i>Connected</span></div>
+        <div class="endpoint"><code>x-geoblock-cache.dariosevilla.es</code></div>
+        <label class="setting-card contribution"><input id="cloud-contribute" type="checkbox"><span class="checkmark"></span><span><strong>Contribute observations</strong><small>Share hashed usernames and detected locations.</small></span></label>
       </section>
 
-      <footer class="actions"><div><button type="submit" class="primary">SAVE CONFIGURATION</button><button type="button" class="danger" id="clear">PURGE LOCAL CACHE</button></div><p id="status" role="status"></p></footer>
+      <footer class="actions"><div><button type="submit" class="primary">Save settings</button><button type="button" class="danger" id="clear">Clear cache</button></div><p id="status" role="status"></p></footer>
     </form>
   </main>
   <script src="../lib/config.js"></script><script src="../lib/countries.js"></script><script src="../lib/cloud-cache.js"></script><script src="options.js"></script>

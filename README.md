@@ -12,7 +12,7 @@ X GeoBlock is a Manifest V3 browser extension for Chromium and Firefox. While yo
 - Provides a searchable country and region checklist with flags, an enable switch, and optional hidden-post placeholders.
 - Includes opt-in debug logging for every lookup and filtering decision.
 - By default, stores all settings and lookup results only in browser extension storage. No data is sent to third parties unless cloud contribution is explicitly enabled.
-- Uses the project Cloudflare Worker + D1 collaborative cache at `x-geoblock-cache.dariosevilla.es`, with signed opt-in contributions and three-installation consensus.
+- Uses the project Cloudflare Worker + D1 collaborative cache at `x-geoblock-cache.dariosevilla.es`, with signed contributions and three-installation consensus. Contributions are enabled by default and can be disabled in settings.
 
 ## Install from source in Chromium
 
