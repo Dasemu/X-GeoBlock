@@ -12,6 +12,16 @@ test("finds following state in nested X user data", () => {
 test("does not confuse another user record", () => {
   assert.equal(findUserRecord({ legacy: { screen_name: "Bob", following: false } }, "alice"), null);
 });
+test("finds following state in the current X user schema", () => {
+  const source = {
+    result: {
+      core: { screen_name: "Alice" },
+      relationship_perspectives: { following: false, followed_by: true },
+      location: "United States"
+    }
+  };
+  assert.deepEqual(findUserRecord(source, "alice"), { following: false, location: "United States" });
+});
 test("normalizes country aliases", () => {
   assert.equal(normalizeCountry(" Russian Federation "), "russia");
   assert.equal(isBlacklisted("Russian Federation", ["Russia"]), true);

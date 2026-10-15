@@ -31,8 +31,8 @@
       if (!value || typeof value !== "object" || seen.has(value) || depth > 12) continue;
       seen.add(value);
       const legacy = value.legacy && typeof value.legacy === "object" ? value.legacy : value;
-      const screenName = legacy.screen_name || value.screen_name;
-      const following = legacy.following ?? value.following;
+      const screenName = legacy.screen_name || value.screen_name || value.core?.screen_name;
+      const following = legacy.following ?? value.following ?? value.relationship_perspectives?.following;
       if (typeof screenName === "string" && screenName.toLowerCase() === username.toLowerCase() &&
           typeof following === "boolean") return following;
       for (const key of Object.keys(value)) {
