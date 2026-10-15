@@ -12,25 +12,5 @@ extensionApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     }
     return false;
   }
-  if (message?.type === "create-about-frame") {
-    removeFrame(message.username);
-    const frame = document.createElement("iframe");
-    frame.dataset.xGeoBlockUser = message.username.toLowerCase();
-    frame.hidden = true;
-    frame.src = `https://x.com/${encodeURIComponent(message.username)}/about`;
-    document.querySelector("#frames").append(frame);
-    sendResponse({ ok: true });
-    return false;
-  }
-  if (message?.type === "remove-about-frame") {
-    removeFrame(message.username);
-    sendResponse({ ok: true });
-    return false;
-  }
   return false;
 });
-
-function removeFrame(username) {
-  const key = String(username).toLowerCase();
-  document.querySelector(`iframe[data-x-geo-block-user="${CSS.escape(key)}"]`)?.remove();
-}

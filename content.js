@@ -51,10 +51,21 @@ extensionApi.storage.onChanged.addListener((changes, area) => {
   if (settings.enabled) scheduleScan();
 });
 
-extensionApi.runtime.onMessage.addListener((message) => {
+extensionApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "debug-event" && settings.debugMode) {
-    console.debug("[X GeoBlock]", message.event, message.data || {});
+    console.info("[X GeoBlock]", message.event, message.data || {});
   }
+  if (message?.type === "create-about-frame") {
+    createAboutFrame(message.username);
+    sendResponse({ ok: true });
+    return false;
+  }
+  if (message?.type === "remove-about-frame") {
+    removeAboutFrame(message.username);
+    sendResponse({ ok: true });
+    return false;
+  }
+  return false;
 });
 
 function scheduleScan() {
@@ -144,7 +155,43 @@ function hideArticle(article, username, country) {
 }
 
 function debug(event, data = {}) {
-  if (settings.debugMode) console.debug("[X GeoBlock]", event, data);
+  if (settings.debugMode) console.info("[X GeoBlock]", event, data);
+}
+
+function createAboutFrame(username) {
+  removeAboutFrame(username);
+  const frame = document.createElement("iframe");
+  frame.dataset.xGeoBlockAboutUser = username.toLowerCase();
+  frame.setAttribute("aria-hidden", "true");
+  frame.tabIndex = -1;
+  frame.style.cssText = "position:fixed!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;left:-10000px!important;top:-10000px!important;border:0!important";
+  frame.src = `https://x.com/${encodeURIComponent(username)}/about`;
+  frame.addEventListener("load", () => inspectAboutFrame(frame, username), { once: true });
+  document.documentElement.append(frame);
+  debug("Hidden About frame appended", { username });
+}
+
+function inspectAboutFrame(frame, username) {
+  const startedAt = Date.now();
+  const timer = setInterval(() => {
+    if (!frame.isConnected) return clearInterval(timer);
+    try {
+      const result = XGeoParser.parseAboutDocument(frame.contentDocument, username);
+      if (result.country) {
+        clearInterval(timer);
+        debug("Hidden About frame parsed", { username, country: result.country, following: result.following });
+        extensionApi.runtime.sendMessage({ type: "about-page-result", username, ...result }).catch(() => {});
+      } else if (Date.now() - startedAt > 24000) clearInterval(timer);
+    } catch (error) {
+      clearInterval(timer);
+      debug("Hidden About frame cannot be inspected", { username, error: error.message });
+    }
+  }, 250);
+}
+
+function removeAboutFrame(username) {
+  const key = String(username).toLowerCase();
+  document.querySelector(`iframe[data-x-geo-block-about-user="${CSS.escape(key)}"]`)?.remove();
 }
 
 function restoreAll() {

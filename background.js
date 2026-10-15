@@ -3,7 +3,6 @@ if (typeof XGeoConfig === "undefined") importScripts("lib/config.js", "lib/cloud
 const extensionApi = globalThis.browser || chrome;
 
 const CACHE_KEY = "userCache";
-const FRAME_RULE_ID = 1;
 const LOCAL_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const activeRequests = new Map();
 const pendingFrameLookups = new Map();
@@ -13,7 +12,6 @@ let lastRequestAt = 0;
 extensionApi.runtime.onInstalled.addListener(async () => {
   const current = await extensionApi.storage.sync.get(XGeoConfig.DEFAULT_SETTINGS);
   await extensionApi.storage.sync.set(current);
-  await ensureFrameRule();
 });
 
 extensionApi.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -30,7 +28,7 @@ extensionApi.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   if (message?.type === "about-page-result") {
-    finishFrameLookup(message);
+    finishFrameLookup(message, sender?.tab?.id);
     sendResponse({ ok: true });
     return false;
   }
@@ -93,7 +91,7 @@ async function lookupUserInternal(username, key, followingHint, tabId) {
 
   emitDebug(tabId, settings.debugMode, "Direct X lookup started", { username });
   const lookupLog = (event, data = {}) => emitDebug(tabId, settings.debugMode, event, { username, ...data });
-  const result = await enqueue(() => fetchAbout(username, lookupLog));
+  const result = await enqueue(() => fetchAbout(username, lookupLog, tabId));
   const record = { ...result, checkedAt: Date.now() };
   emitDebug(tabId, settings.debugMode, "Direct X lookup completed", { username, country: record.country, following: record.following });
   if (record.country || record.following === true) {
@@ -116,7 +114,7 @@ async function lookupUserInternal(username, key, followingHint, tabId) {
 
 function emitDebug(tabId, enabled, event, data = {}) {
   if (!enabled) return;
-  console.debug("[X GeoBlock]", event, data);
+  console.info("[X GeoBlock]", event, data);
   if (Number.isInteger(tabId)) {
     extensionApi.tabs.sendMessage(tabId, { type: "debug-event", event, data }).catch(() => {});
   }
@@ -143,7 +141,7 @@ function enqueue(task) {
   return run;
 }
 
-async function fetchAbout(username, log = () => {}) {
+async function fetchAbout(username, log = () => {}, tabId = null) {
   try {
     const response = await fetch(`https://x.com/${encodeURIComponent(username)}/about`, {
       credentials: "include",
@@ -160,8 +158,8 @@ async function fetchAbout(username, log = () => {}) {
     log("Background HTTP lookup failed", { error: error.message });
     // X frequently serves an incomplete SPA shell to extension fetches.
   }
-  log("Falling back to isolated background frame");
-  return lookupViaBackgroundFrame(username, log);
+  log("Falling back to same-origin hidden frame");
+  return lookupViaPageFrame(username, tabId, log);
 }
 
 async function parseFetchedHtml(html, username) {
@@ -173,17 +171,19 @@ async function parseFetchedHtml(html, username) {
   return extensionApi.runtime.sendMessage({ type: "parse-about-html", html, username });
 }
 
-async function lookupViaBackgroundFrame(username, log = () => {}) {
+async function lookupViaPageFrame(username, tabId, log = () => {}) {
+  if (!Number.isInteger(tabId)) throw new Error("No X tab is available for the rendered About lookup");
   const key = username.toLowerCase();
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       pendingFrameLookups.delete(key);
-      removeBackgroundFrame(key);
-      log("Isolated background frame timed out");
-      reject(new Error(`Timed out while rendering @${username}'s About page in the background`));
+      removePageFrame(tabId, key);
+      log("Same-origin hidden frame timed out");
+      reject(new Error(`Timed out while rendering @${username}'s About page`));
     }, 25000);
-    pendingFrameLookups.set(key, { resolve, reject, timer, log });
-    createBackgroundFrame(username).then(() => log("Isolated background frame created")).catch((error) => {
+    pendingFrameLookups.set(key, { resolve, reject, timer, log, tabId });
+    extensionApi.tabs.sendMessage(tabId, { type: "create-about-frame", username })
+      .then(() => log("Same-origin hidden frame created")).catch((error) => {
       clearTimeout(timer);
       pendingFrameLookups.delete(key);
       reject(error);
@@ -191,10 +191,10 @@ async function lookupViaBackgroundFrame(username, log = () => {}) {
   });
 }
 
-function finishFrameLookup(message) {
+function finishFrameLookup(message, tabId) {
   const key = String(message.username).toLowerCase();
   const pending = pendingFrameLookups.get(key);
-  if (!pending) return;
+  if (!pending || pending.tabId !== tabId) return;
   pending.log("Rendered About page reported a result", { country: message.country || null, following: message.following ?? null });
   clearTimeout(pending.timer);
   pendingFrameLookups.delete(key);
@@ -203,58 +203,11 @@ function finishFrameLookup(message) {
     following: message.following === true,
     profileLocation: message.profileLocation || null
   });
-  removeBackgroundFrame(key);
+  removePageFrame(tabId, key);
 }
 
-async function createBackgroundFrame(username) {
-  await ensureFrameRule();
-  if (typeof document !== "undefined") {
-    const frame = document.createElement("iframe");
-    frame.dataset.xGeoBlockUser = username.toLowerCase();
-    frame.hidden = true;
-    frame.src = `https://x.com/${encodeURIComponent(username)}/about`;
-    document.body.append(frame);
-    return;
-  }
-  await ensureOffscreenDocument();
-  await extensionApi.runtime.sendMessage({ type: "create-about-frame", username });
-}
-
-let frameRulePromise;
-function ensureFrameRule() {
-  if (!frameRulePromise) {
-    frameRulePromise = extensionApi.declarativeNetRequest.updateSessionRules({
-      removeRuleIds: [FRAME_RULE_ID],
-      addRules: [{
-        id: FRAME_RULE_ID,
-        priority: 1,
-        action: {
-          type: "modifyHeaders",
-          responseHeaders: [
-            { header: "x-frame-options", operation: "remove" },
-            { header: "content-security-policy", operation: "remove" }
-          ]
-        },
-        condition: {
-          urlFilter: "||x.com/",
-          resourceTypes: ["sub_frame"],
-          tabIds: [-1]
-        }
-      }]
-    }).catch((error) => {
-      frameRulePromise = null;
-      throw error;
-    });
-  }
-  return frameRulePromise;
-}
-
-function removeBackgroundFrame(username) {
-  if (typeof document !== "undefined") {
-    document.querySelector(`iframe[data-x-geo-block-user="${CSS.escape(username)}"]`)?.remove();
-    return;
-  }
-  extensionApi.runtime.sendMessage({ type: "remove-about-frame", username }).catch(() => {});
+function removePageFrame(tabId, username) {
+  extensionApi.tabs.sendMessage(tabId, { type: "remove-about-frame", username }).catch(() => {});
 }
 
 async function ensureOffscreenDocument() {
@@ -263,7 +216,7 @@ async function ensureOffscreenDocument() {
   if (clients.some((client) => client.url === url)) return;
   await extensionApi.offscreen.createDocument({
     url: "offscreen/offscreen.html",
-    reasons: ["DOM_PARSER", "IFRAME_SCRIPTING"],
-    justification: "Parse and render account About pages entirely in the extension background."
+    reasons: ["DOM_PARSER"],
+    justification: "Parse account About HTML without opening a visible page."
   });
 }

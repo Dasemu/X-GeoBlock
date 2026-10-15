@@ -5,7 +5,7 @@
 1. The content script observes X's timeline and extracts an author from each canonical `/user/status/id` link.
 2. The service worker checks the local cache and coalesces concurrent lookups for the same username.
 3. On a cache miss, the background process requests `https://x.com/<user>/about` with the browser's existing X session.
-4. Chromium passes fetched HTML to an offscreen document; Firefox can parse it in its background page. When X returns only its SPA shell, an invisible frame inside the isolated background document renders the same URL, reports the location row, and is immediately destroyed. This does not create a browser tab or window.
+4. Chromium passes fetched HTML to an offscreen document; Firefox can parse it in its background page. When X returns only its SPA shell, an invisible same-origin frame inside the current X page renders the URL. The content script reads the location row and immediately destroys the frame. This does not create a browser tab or window.
 5. The worker caches the result and compares the country with the configured blacklist.
 6. The content script hides the post only when the country matches and the account is not followed.
 
