@@ -8,7 +8,7 @@ const dist = join(root, "dist");
 const baseManifest = JSON.parse(readFileSync(join(root, "manifest.json"), "utf8"));
 const version = baseManifest.version;
 const sharedFiles = [
-  "background.js", "content.js", "content.css", "page-bridge.js", "icons", "lib", "options", "popup"
+  "background.js", "content.js", "content.css", "page-bridge.js", "icons", "lib", "options", "popup", "rules"
 ];
 
 rmSync(dist, { recursive: true, force: true });
@@ -35,7 +35,7 @@ firefoxManifest.background = {
 firefoxManifest.browser_specific_settings = {
   gecko: {
     id: "x-geoblock@dasemu.github.io",
-    strict_min_version: "109.0"
+    strict_min_version: "113.0"
   }
 };
 const firefoxDirectory = prepare("firefox", firefoxManifest);

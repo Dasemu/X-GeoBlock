@@ -11,7 +11,8 @@
   },
   "permissions": [
     "storage",
-    "offscreen"
+    "offscreen",
+    "declarativeNetRequestWithHostAccess"
   ],
   "host_permissions": [
     "https://x.com/*"
@@ -21,6 +22,15 @@
   ],
   "background": {
     "service_worker": "background.js"
+  },
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "about_page_frame",
+        "enabled": true,
+        "path": "rules/about-frame.json"
+      }
+    ]
   },
   "content_scripts": [
     {
