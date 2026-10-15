@@ -3,6 +3,12 @@
   "name": "X GeoBlock",
   "version": "1.0.1",
   "description": "Hide posts from X accounts based in countries you choose.",
+  "icons": {
+    "16": "icons/icon.png",
+    "32": "icons/icon.png",
+    "48": "icons/icon.png",
+    "128": "icons/icon.png"
+  },
   "permissions": [
     "storage",
     "offscreen"
@@ -30,7 +36,11 @@
   "options_page": "options/options.html",
   "action": {
     "default_title": "X GeoBlock",
-    "default_popup": "popup/popup.html"
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon.png",
+      "32": "icons/icon.png"
+    }
   },
   "web_accessible_resources": [],
   "minimum_chrome_version": "109"

@@ -9,7 +9,7 @@
 5. The worker caches the result and compares the country with the configured blacklist.
 6. The content script hides the post only when the country matches and the account is not followed.
 
-Failed or ambiguous lookups fail open: the post remains visible. The cache is limited to 2,000 entries and pruned to the 1,500 most recently checked entries when the limit is exceeded.
+Failed or ambiguous lookups fail open: the post remains visible. Successful lookups remain cached without expiration. The user can clear the entire cache from the settings page if X changes an account's country or following relationship.
 
 ## Browser components
 

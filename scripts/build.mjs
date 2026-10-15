@@ -8,7 +8,7 @@ const dist = join(root, "dist");
 const baseManifest = JSON.parse(readFileSync(join(root, "manifest.json"), "utf8"));
 const version = baseManifest.version;
 const sharedFiles = [
-  "background.js", "content.js", "content.css", "lib", "options", "popup"
+  "background.js", "content.js", "content.css", "icons", "lib", "options", "popup"
 ];
 
 rmSync(dist, { recursive: true, force: true });

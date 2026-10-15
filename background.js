@@ -45,14 +45,12 @@ async function lookupUserInternal(username, key) {
   const stored = await extensionApi.storage.local.get(CACHE_KEY);
   const cache = stored[CACHE_KEY] || {};
   const cached = cache[key];
-  const ttl = Math.max(1, Number(settings.cacheTtlHours) || 168) * 60 * 60 * 1000;
-  if (cached && Date.now() - cached.checkedAt < ttl) {
+  if (cached) {
     return decision(cached, settings, true);
   }
 
   const result = await enqueue(() => fetchAbout(username));
   cache[key] = { ...result, checkedAt: Date.now() };
-  pruneCache(cache);
   await extensionApi.storage.local.set({ [CACHE_KEY]: cache });
   return decision(cache[key], settings, false);
 }
@@ -104,11 +102,4 @@ async function ensureOffscreenDocument() {
     reasons: ["DOM_PARSER"],
     justification: "Parse the account About page without opening a visible tab."
   });
-}
-
-function pruneCache(cache) {
-  const entries = Object.entries(cache);
-  if (entries.length <= 2000) return;
-  entries.sort((a, b) => (b[1].checkedAt || 0) - (a[1].checkedAt || 0));
-  for (const [key] of entries.slice(1500)) delete cache[key];
 }
