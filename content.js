@@ -14,6 +14,7 @@ async function initialize() {
     reportRenderedAboutPage(aboutMatch[1]);
     return;
   }
+  if (window.top !== window) return;
   settings = await extensionApi.storage.sync.get({ enabled: true, showPlaceholder: false });
   scan(document);
   new MutationObserver((mutations) => {

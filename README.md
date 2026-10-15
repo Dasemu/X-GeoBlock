@@ -5,7 +5,7 @@ X GeoBlock is a Manifest V3 browser extension for Chromium and Firefox. While yo
 ## Features
 
 - Processes posts already on the page and posts loaded by infinite scrolling.
-- Performs authenticated About-page requests in the background. If X returns only its empty application shell, the extension briefly uses an inactive tab so X can render the account data, then closes it automatically.
+- Performs authenticated About-page requests in the background. If X returns only its empty application shell, an isolated invisible extension frame renders the account data without opening tabs or windows.
 - Caches account results locally without expiration until you clear the cache.
 - Coalesces duplicate lookups and spaces network requests to reduce load on X.
 - Skips followed accounts.
@@ -53,7 +53,7 @@ The location picker contains the ISO 3166-1 countries, plus Kosovo, using Englis
 
 - `storage`: saves settings and the local user cache.
 - `offscreen`: parses returned HTML without opening visible tabs.
-- `tabs`: opens and closes inactive About tabs when X requires client-side rendering.
+- `declarativeNetRequestWithHostAccess`: permits only `x.com` subframes to render inside the isolated background document after X returns an empty application shell.
 - `https://x.com/*`: reads About pages and runs the feed filter on X.
 
 ## License
