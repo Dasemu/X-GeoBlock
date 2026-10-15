@@ -5,11 +5,11 @@
 1. The content script observes X's timeline and extracts an author from each canonical `/user/status/id` link.
 2. The service worker checks the local cache and coalesces concurrent lookups for the same username.
 3. On a cache miss, the background process requests `https://x.com/<user>/about` with the browser's existing X session.
-4. Chromium passes the HTML to an offscreen document; Firefox parses it in its background page. The parser locates the location-pin row for the account country and also inspects embedded user data for the `following` relationship.
+4. Chromium passes fetched HTML to an offscreen document; Firefox can parse it in its background page. When X returns only its SPA shell, the extension opens the same URL in an inactive tab, waits for X to render the location row, reports the result, and closes the tab.
 5. The worker caches the result and compares the country with the configured blacklist.
 6. The content script hides the post only when the country matches and the account is not followed.
 
-Failed or ambiguous lookups fail open: the post remains visible. Successful lookups remain cached without expiration. The user can clear the entire cache from the settings page if X changes an account's country or following relationship.
+Failed or ambiguous lookups fail open: the post remains visible. Empty results are never cached. Successful lookups remain cached without expiration. The user can clear the entire cache from the settings page if X changes an account's country or following relationship.
 
 ## Browser components
 

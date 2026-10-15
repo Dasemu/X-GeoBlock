@@ -11,7 +11,8 @@
   },
   "permissions": [
     "storage",
-    "offscreen"
+    "offscreen",
+    "tabs"
   ],
   "host_permissions": [
     "https://x.com/*"
@@ -25,6 +26,7 @@
         "https://x.com/*"
       ],
       "js": [
+        "lib/parser.js",
         "content.js"
       ],
       "css": [

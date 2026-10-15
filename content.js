@@ -9,11 +9,34 @@ let scanQueued = false;
 initialize();
 
 async function initialize() {
+  const aboutMatch = location.pathname.match(/^\/([A-Za-z0-9_]{1,15})\/about\/?$/);
+  if (aboutMatch) {
+    reportRenderedAboutPage(aboutMatch[1]);
+    return;
+  }
   settings = await extensionApi.storage.sync.get({ enabled: true, showPlaceholder: false });
   scan(document);
   new MutationObserver((mutations) => {
     if (mutations.some((mutation) => mutation.addedNodes.length)) scheduleScan();
   }).observe(document.documentElement, { childList: true, subtree: true });
+}
+
+function reportRenderedAboutPage(username) {
+  const startedAt = Date.now();
+  const inspect = () => {
+    const result = XGeoParser.parseAboutDocument(document, username);
+    if (result.country) {
+      extensionApi.runtime.sendMessage({ type: "about-page-result", username, ...result }).catch(() => {});
+      return true;
+    }
+    return Date.now() - startedAt >= 24000;
+  };
+  if (inspect()) return;
+  const observer = new MutationObserver(() => {
+    if (inspect()) observer.disconnect();
+  });
+  observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+  setTimeout(() => observer.disconnect(), 24500);
 }
 
 extensionApi.storage.onChanged.addListener((changes, area) => {
