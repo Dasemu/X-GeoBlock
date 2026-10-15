@@ -6,8 +6,10 @@ const CACHE_KEY = "userCache";
 const LOCAL_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const activeRequests = new Map();
 const pendingFrameLookups = new Map();
-let queueTail = Promise.resolve();
+const requestQueue = [];
+let runningRequests = 0;
 let lastRequestAt = 0;
+const MAX_CONCURRENT_REQUESTS = 3;
 
 extensionApi.runtime.onInstalled.addListener(async () => {
   const current = await extensionApi.storage.sync.get(XGeoConfig.DEFAULT_SETTINGS);
@@ -131,14 +133,28 @@ function decision(record, settings, cached) {
 }
 
 function enqueue(task) {
-  const run = queueTail.then(async () => {
-    const delay = Math.max(0, 350 - (Date.now() - lastRequestAt));
-    if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
-    lastRequestAt = Date.now();
-    return task();
+  return new Promise((resolve, reject) => {
+    requestQueue.push({ task, resolve, reject });
+    drainQueue();
   });
-  queueTail = run.catch(() => {});
-  return run;
+}
+
+function drainQueue() {
+  while (runningRequests < MAX_CONCURRENT_REQUESTS && requestQueue.length) {
+    const entry = requestQueue.shift();
+    runningRequests += 1;
+    const scheduledAt = Math.max(Date.now(), lastRequestAt + 350);
+    lastRequestAt = scheduledAt;
+    const delay = scheduledAt - Date.now();
+    setTimeout(async () => {
+      try { entry.resolve(await entry.task()); }
+      catch (error) { entry.reject(error); }
+      finally {
+        runningRequests -= 1;
+        drainQueue();
+      }
+    }, delay);
+  }
 }
 
 async function fetchAbout(username, log = () => {}, tabId = null) {

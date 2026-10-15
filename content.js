@@ -110,6 +110,8 @@ async function processArticle(article) {
 }
 
 function getFollowingHint(article, username) {
+  const profileHint = getProfileFollowingHint(username);
+  if (profileHint !== null) return Promise.resolve(profileHint);
   return new Promise((resolve) => {
     let settled = false;
     const finish = () => {
@@ -124,6 +126,19 @@ function getFollowingHint(article, username) {
     article.dispatchEvent(new Event("x-geoblock-following-request"));
     setTimeout(finish, 150);
   });
+}
+
+function getProfileFollowingHint(username) {
+  const profile = location.pathname.match(/^\/([A-Za-z0-9_]{1,15})(?:\/|$)/)?.[1];
+  if (!profile || profile.toLowerCase() !== username.toLowerCase()) return null;
+  const column = document.querySelector('[data-testid="primaryColumn"]') || document;
+  if (column.querySelector('[data-testid$="-unfollow"]')) return true;
+  if (column.querySelector('[data-testid$="-follow"]')) return false;
+  const buttons = Array.from(column.querySelectorAll("button, [role=button]"));
+  const labels = buttons.slice(0, 30).map((button) => `${button.textContent || ""} ${button.getAttribute("aria-label") || ""}`.trim().toLowerCase());
+  if (labels.some((label) => /^(following|siguiendo|abonné|abonniert|seguindo|seguiti)(\s|$)/.test(label))) return true;
+  if (labels.some((label) => /^(follow|seguir|s’abonner|folgen|seguir)(\s|$)/.test(label))) return false;
+  return null;
 }
 
 function getTweetIdentity(article) {
@@ -176,7 +191,15 @@ function inspectAboutFrame(frame, username) {
   const timer = setInterval(() => {
     if (!frame.isConnected) return clearInterval(timer);
     try {
-      const result = XGeoParser.parseAboutDocument(frame.contentDocument, username);
+      const frameDocument = frame.contentDocument;
+      if (!frameDocument?.documentElement) {
+        if (Date.now() - startedAt > 24000) {
+          clearInterval(timer);
+          debug("Hidden About frame document remained unavailable", { username });
+        }
+        return;
+      }
+      const result = XGeoParser.parseAboutDocument(frameDocument, username);
       if (result.country) {
         clearInterval(timer);
         debug("Hidden About frame parsed", { username, country: result.country, following: result.following });
