@@ -60,6 +60,10 @@ extensionApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     sendResponse({ ok: true });
     return false;
   }
+  if (message?.type === "lookup-about-api") {
+    lookupAboutApi(message.username).then(sendResponse);
+    return true;
+  }
   if (message?.type === "remove-about-frame") {
     removeAboutFrame(message.username);
     sendResponse({ ok: true });
@@ -123,7 +127,7 @@ function getFollowingHint(article, username) {
     };
     article.dataset.xGeoBlockRequestUser = username;
     article.addEventListener("x-geoblock-following-response", finish, { once: true });
-    article.dispatchEvent(new Event("x-geoblock-following-request"));
+    article.dispatchEvent(new Event("x-geoblock-following-request", { bubbles: true }));
     setTimeout(finish, 150);
   });
 }
@@ -184,6 +188,29 @@ function createAboutFrame(username) {
   frame.addEventListener("load", () => inspectAboutFrame(frame, username), { once: true });
   document.documentElement.append(frame);
   debug("Hidden About frame appended", { username });
+}
+
+function lookupAboutApi(username) {
+  return new Promise((resolve) => {
+    let timer;
+    const request = document.createElement("span");
+    request.hidden = true;
+    request.dataset.xGeoBlockUsername = username;
+    const finish = () => {
+      clearTimeout(timer);
+      const raw = request.dataset.xGeoBlockResult;
+      const error = request.dataset.xGeoBlockError;
+      request.remove();
+      if (raw) {
+        try { resolve({ ok: true, ...JSON.parse(raw) }); }
+        catch (parseError) { resolve({ ok: false, error: parseError.message }); }
+      } else resolve({ ok: false, error: error || "AboutAccountQuery did not respond" });
+    };
+    request.addEventListener("x-geoblock-about-api-response", finish, { once: true });
+    document.documentElement.append(request);
+    request.dispatchEvent(new Event("x-geoblock-about-api-request", { bubbles: true }));
+    timer = setTimeout(finish, 10000);
+  });
 }
 
 function inspectAboutFrame(frame, username) {

@@ -4,8 +4,8 @@
 
 1. The content script observes X's timeline and extracts an author from each canonical `/user/status/id` link.
 2. The service worker checks the local cache and coalesces concurrent lookups for the same username.
-3. On a cache miss, the background process requests `https://x.com/<user>/about` with the browser's existing X session.
-4. Chromium passes fetched HTML to an offscreen document; Firefox can parse it in its background page. When X returns only its SPA shell, an invisible same-origin frame inside the current X page renders the URL. A static network rule removes CSP and `X-Frame-Options` only from matching `/about` subframe responses. The content script reads the location row and immediately destroys the frame. This does not create a browser tab or window.
+3. On a cache miss, the extension first parses `https://x.com/<user>/about`, then asks the current X page to run the authenticated `AboutAccountQuery` and reads `about_profile.account_based_in`.
+4. If both direct methods fail, an invisible same-origin frame renders the `/about` URL. A static network rule removes CSP and `X-Frame-Options` only from matching `/about` subframe responses. The content script reads the location row and immediately destroys the frame. This does not create a browser tab or window.
 5. The worker caches the result and compares the country with the configured blacklist.
 6. The content script hides the post only when the country matches and the account is not followed.
 

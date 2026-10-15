@@ -174,6 +174,19 @@ async function fetchAbout(username, log = () => {}, tabId = null) {
     log("Background HTTP lookup failed", { error: error.message });
     // X frequently serves an incomplete SPA shell to extension fetches.
   }
+  if (Number.isInteger(tabId)) {
+    try {
+      log("Authenticated AboutAccountQuery started");
+      const apiResult = await extensionApi.tabs.sendMessage(tabId, { type: "lookup-about-api", username });
+      log("Authenticated AboutAccountQuery completed", { country: apiResult?.country || null });
+      if (apiResult?.ok && apiResult.country) {
+        return { country: apiResult.country, following: null, profileLocation: null, source: "x-api" };
+      }
+      if (apiResult?.error) log("Authenticated AboutAccountQuery failed", { error: apiResult.error });
+    } catch (error) {
+      log("Authenticated AboutAccountQuery failed", { error: error.message });
+    }
+  }
   log("Falling back to same-origin hidden frame");
   return lookupViaPageFrame(username, tabId, log);
 }

@@ -1,6 +1,9 @@
 (function () {
   "use strict";
 
+  const ABOUT_QUERY_ID = "TzOG2twZEfhr9KmClvVVqA";
+  const PUBLIC_BEARER_TOKEN = "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA";
+
   document.addEventListener("x-geoblock-following-request", (event) => {
     const article = event.target;
     if (!(article instanceof Element)) return;
@@ -8,6 +11,37 @@
     const following = findFollowing(article, username);
     article.dataset.xGeoBlockFollowing = following === null ? "unknown" : String(following);
     article.dispatchEvent(new Event("x-geoblock-following-response"));
+  });
+
+  document.addEventListener("x-geoblock-about-api-request", async (event) => {
+    const request = event.target;
+    if (!(request instanceof Element)) return;
+    const username = request.dataset.xGeoBlockUsername || "";
+    try {
+      const csrf = document.cookie.match(/(?:^|;\s*)ct0=([^;]+)/)?.[1];
+      if (!csrf) throw new Error("X session CSRF cookie is unavailable");
+      const variables = encodeURIComponent(JSON.stringify({ screenName: username }));
+      const response = await fetch(`/i/api/graphql/${ABOUT_QUERY_ID}/AboutAccountQuery?variables=${variables}`, {
+        credentials: "include",
+        headers: {
+          authorization: `Bearer ${PUBLIC_BEARER_TOKEN}`,
+          "x-csrf-token": decodeURIComponent(csrf),
+          "x-twitter-active-user": "yes",
+          "x-twitter-auth-type": "OAuth2Session",
+          "x-twitter-client-language": document.documentElement.lang || "en"
+        }
+      });
+      if (!response.ok) throw new Error(`AboutAccountQuery returned HTTP ${response.status}`);
+      const payload = await response.json();
+      const result = payload?.data?.user_result_by_screen_name?.result;
+      request.dataset.xGeoBlockResult = JSON.stringify({
+        country: result?.about_profile?.account_based_in || null,
+        screenName: result?.core?.screen_name || null
+      });
+    } catch (error) {
+      request.dataset.xGeoBlockError = error?.message || String(error);
+    }
+    request.dispatchEvent(new Event("x-geoblock-about-api-response"));
   });
 
   function findFollowing(article, username) {

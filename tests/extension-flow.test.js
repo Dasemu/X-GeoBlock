@@ -6,6 +6,7 @@ const { parseHTML } = require("linkedom");
 const parser = require("../lib/parser.js");
 
 const contentSource = fs.readFileSync(require.resolve("../content.js"), "utf8");
+const pageBridgeSource = fs.readFileSync(require.resolve("../page-bridge.js"), "utf8");
 
 function createContext(html, pathname, sendMessage) {
   const { window, document } = parseHTML(html);
@@ -89,4 +90,41 @@ test("blacklisted profile owner post is hidden", async () => {
   assert.equal(article.dataset.xGeoBlockState, "blocked");
   assert.equal(article.dataset.xGeoBlockCountry, "United States");
   assert.equal(article.closest('[data-testid="cellInnerDiv"]').classList.contains("x-geoblock-hidden"), true);
+});
+
+test("page bridge performs the authenticated AboutAccountQuery", async () => {
+  const { window, document } = parseHTML("<html lang=\"en\"><body></body></html>");
+  Object.defineProperty(document, "cookie", { value: "ct0=test-csrf", configurable: true });
+  let requestedUrl;
+  const context = {
+    document,
+    Element: window.Element,
+    Node: window.Node,
+    Event: window.Event,
+    console,
+    fetch: async (url, options) => {
+      requestedUrl = url;
+      assert.equal(options.credentials, "include");
+      assert.equal(options.headers["x-csrf-token"], "test-csrf");
+      return {
+        ok: true,
+        json: async () => ({ data: { user_result_by_screen_name: { result: {
+          core: { screen_name: "ShitskinBlud" },
+          about_profile: { account_based_in: "Lebanon" }
+        } } } })
+      };
+    }
+  };
+  vm.runInNewContext(pageBridgeSource, context, { filename: "page-bridge.js" });
+  const request = document.createElement("span");
+  request.dataset.xGeoBlockUsername = "ShitskinBlud";
+  const response = new Promise((resolve, reject) => {
+    request.addEventListener("x-geoblock-about-api-response", resolve, { once: true });
+    setTimeout(() => reject(new Error("AboutAccountQuery bridge response timed out")), 500);
+  });
+  document.body.append(request);
+  request.dispatchEvent(new window.Event("x-geoblock-about-api-request", { bubbles: true }));
+  await response;
+  assert.match(requestedUrl, /AboutAccountQuery\?variables=/);
+  assert.deepEqual(JSON.parse(request.dataset.xGeoBlockResult), { country: "Lebanon", screenName: "ShitskinBlud" });
 });
