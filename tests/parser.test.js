@@ -1,7 +1,8 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { findUserRecord } = require("../lib/parser.js");
-const { normalizeCountry, isBlacklisted } = require("../lib/config.js");
+const config = require("../lib/config.js");
+const { normalizeCountry, isBlacklisted } = config;
 const { COUNTRIES, LOCATIONS } = require("../lib/countries.js");
 const { normalizeEndpoint, hashHandle } = require("../lib/cloud-cache.js");
 
@@ -26,6 +27,15 @@ test("normalizes country aliases", () => {
   assert.equal(normalizeCountry(" Russian Federation "), "russia");
   assert.equal(isBlacklisted("Russian Federation", ["Russia"]), true);
   assert.equal(isBlacklisted("Germany", ["Russia"]), false);
+});
+test("uses the production collaborative cache endpoint", () => {
+  assert.equal(config.CLOUD_CACHE_ENDPOINT, "https://x-geoblock-cache.dariosevilla.es");
+  assert.equal(config.DEFAULT_SETTINGS.cloudCacheEndpoint, config.CLOUD_CACHE_ENDPOINT);
+});
+test("followed-account exemption is configurable", () => {
+  assert.equal(config.shouldBlock("Lebanon", ["Lebanon"], true, true), false);
+  assert.equal(config.shouldBlock("Lebanon", ["Lebanon"], true, false), true);
+  assert.equal(config.shouldBlock("Lebanon", ["Lebanon"], false, true), true);
 });
 test("offers the full country checklist with unique values", () => {
   assert.equal(COUNTRIES.length, 250);

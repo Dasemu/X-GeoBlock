@@ -15,10 +15,8 @@
     "declarativeNetRequestWithHostAccess"
   ],
   "host_permissions": [
-    "https://x.com/*"
-  ],
-  "optional_host_permissions": [
-    "https://*/*"
+    "https://x.com/*",
+    "https://x-geoblock-cache.dariosevilla.es/*"
   ],
   "background": {
     "service_worker": "background.js"

@@ -53,6 +53,7 @@ async function lookupUser(username, followingHint = null, tabId = null) {
 
 async function lookupUserInternal(username, key, followingHint, tabId) {
   const settings = await extensionApi.storage.sync.get(XGeoConfig.DEFAULT_SETTINGS);
+  settings.cloudCacheEndpoint = XGeoConfig.CLOUD_CACHE_ENDPOINT;
   emitDebug(tabId, settings.debugMode, "Lookup started", { username, followingHint });
   const stored = await extensionApi.storage.local.get(CACHE_KEY);
   const cache = stored[CACHE_KEY] || {};
@@ -68,18 +69,18 @@ async function lookupUserInternal(username, key, followingHint, tabId) {
     await extensionApi.storage.local.set({ [CACHE_KEY]: cache });
   } else emitDebug(tabId, settings.debugMode, "Local cache miss", { username });
 
-  if (followingHint === true) {
+  if (followingHint === true && settings.skipFollowed) {
     emitDebug(tabId, settings.debugMode, "Author is followed; allowing post", { username });
     return decision({ country: null, following: true }, settings, false);
   }
-  if (followingHint === false && settings.cloudCacheEndpoint) {
+  if ((followingHint !== true || !settings.skipFollowed) && settings.cloudCacheEndpoint) {
     try {
       emitDebug(tabId, settings.debugMode, "Cloud cache lookup", { username, endpoint: settings.cloudCacheEndpoint });
       const cloud = await XGeoCloud.lookup(settings.cloudCacheEndpoint, [key]);
       const hit = cloud.get(key);
       if (hit?.status === "confirmed" && hit.location) {
         emitDebug(tabId, settings.debugMode, "Cloud cache hit", { username, country: hit.location, confidence: hit.confidence, confirmations: hit.confirmations });
-        const record = { country: hit.location, following: false, checkedAt: Date.now(), source: "cloud" };
+        const record = { country: hit.location, following: followingHint === true, checkedAt: Date.now(), source: "cloud" };
         cache[key] = record;
         await extensionApi.storage.local.set({ [CACHE_KEY]: cache });
         return decision(record, settings, false);
@@ -94,7 +95,7 @@ async function lookupUserInternal(username, key, followingHint, tabId) {
   emitDebug(tabId, settings.debugMode, "Direct X lookup started", { username });
   const lookupLog = (event, data = {}) => emitDebug(tabId, settings.debugMode, event, { username, ...data });
   const result = await enqueue(() => fetchAbout(username, lookupLog, tabId));
-  const record = { ...result, checkedAt: Date.now() };
+  const record = { ...result, following: result.following ?? followingHint, checkedAt: Date.now() };
   emitDebug(tabId, settings.debugMode, "Direct X lookup completed", { username, country: record.country, following: record.following });
   if (record.country || record.following === true) {
     cache[key] = record;
@@ -127,7 +128,7 @@ function decision(record, settings, cached) {
     ok: true,
     country: record.country,
     following: record.following === true,
-    blocked: record.following !== true && XGeoConfig.isBlacklisted(record.country, settings.blacklist),
+    blocked: XGeoConfig.shouldBlock(record.country, settings.blacklist, record.following, settings.skipFollowed),
     cached
   };
 }

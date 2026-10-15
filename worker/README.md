@@ -11,7 +11,7 @@ This Cloudflare Worker stores privacy-conscious, consensus-based account locatio
 5. Apply migrations: `npm run worker:migrate`.
 6. Deploy the code into the Worker: `npm run worker:deploy`.
 7. Verify `https://<your-worker>.workers.dev/health` returns `{"ok":true}`.
-8. Enter the resulting HTTPS Worker URL in the extension settings.
+8. Point `CLOUD_CACHE_ENDPOINT` in `lib/config.js` and the matching manifest host permission at the deployed hostname. Production builds use `https://x-geoblock-cache.dariosevilla.es`.
 
 If you created an empty Worker in the Cloudflare dashboard already, keep the same `name` in `worker/wrangler.toml`; `npm run worker:deploy` replaces its code. You still need a D1 database bound under the exact name `DB`, the migration, and `ABUSE_HMAC_KEY`.
 

@@ -8,11 +8,11 @@ X GeoBlock is a Manifest V3 browser extension for Chromium and Firefox. While yo
 - Uses X's authenticated `AboutAccountQuery` from the current page session. HTML parsing and an invisible same-origin `/about` frame remain as fallbacks, without opening tabs or windows.
 - Caches account results locally for 30 days, with manual clearing available.
 - Coalesces duplicate lookups and spaces network requests to reduce load on X.
-- Skips followed accounts.
+- Skips followed accounts by default, with a setting to apply the blocklist to them as well.
 - Provides a searchable country and region checklist with flags, an enable switch, and optional hidden-post placeholders.
 - Includes opt-in debug logging for every lookup and filtering decision.
 - By default, stores all settings and lookup results only in browser extension storage. No data is sent to third parties unless cloud contribution is explicitly enabled.
-- Supports an optional, self-hosted Cloudflare Worker + D1 collaborative cache with signed opt-in contributions and three-installation consensus.
+- Uses the project Cloudflare Worker + D1 collaborative cache at `x-geoblock-cache.dariosevilla.es`, with signed opt-in contributions and three-installation consensus.
 
 ## Install from source in Chromium
 
@@ -57,6 +57,7 @@ The location picker contains the ISO 3166-1 countries, plus Kosovo, using Englis
 - `offscreen`: parses returned HTML without opening visible tabs.
 - `declarativeNetRequestWithHostAccess`: removes anti-framing response headers only from `x.com/*/about` subframe requests so the fallback can render.
 - `https://x.com/*`: reads About pages and runs the feed filter on X.
+- `https://x-geoblock-cache.dariosevilla.es/*`: looks up confirmed shared location results and submits observations only when contribution is enabled.
 
 ## License
 

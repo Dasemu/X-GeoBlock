@@ -1,2 +1,12 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>X GeoBlock</title><link rel="stylesheet" href="popup.css"></head>
-<body><main><div class="brand"><img src="../icons/icon.png" alt=""><h1>X GeoBlock</h1></div><label><input id="enabled" type="checkbox"> Filtering enabled</label><p id="summary"></p><button id="settings">Open settings</button></main><script src="../lib/config.js"></script><script src="popup.js"></script></body></html>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>X GeoBlock</title><link rel="stylesheet" href="popup.css"></head>
+<body><main>
+  <header class="brand"><div class="logo-shell"><img src="../icons/icon.png" alt=""></div><div><p class="eyebrow">NETWORK FILTER</p><h1>X GeoBlock</h1></div><span class="version" id="version">v—</span></header>
+  <section class="status-card">
+    <div class="status-line"><span class="pulse" aria-hidden="true"></span><span>FILTER ENGINE</span><strong id="engine-status">ONLINE</strong></div>
+    <label class="switch-row" for="enabled"><span><strong>Protection</strong><small>Scan posts as they load</small></span><span class="switch"><input id="enabled" type="checkbox"><span class="slider"></span></span></label>
+  </section>
+  <div class="metric"><span>BLOCKLIST</span><strong id="summary">—</strong></div>
+  <div class="cloud-line"><span class="cloud-dot"></span><span>Cloud cache linked</span></div>
+  <button id="settings"><span>OPEN CONTROL PANEL</span><span aria-hidden="true">→</span></button>
+</main><script src="../lib/config.js"></script><script src="popup.js"></script></body></html>

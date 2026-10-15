@@ -1,6 +1,6 @@
 # Collaborative cloud cache
 
-The optional cloud cache uses the Cloudflare Worker and D1 schema in `worker/`. It is disabled until a user enters a deployed Worker URL in extension settings. Contributing observations is a separate opt-in choice.
+The cloud cache uses the Cloudflare Worker and D1 schema in `worker/`. Extension builds use `https://x-geoblock-cache.dariosevilla.es` for reads. Contributing observations is a separate opt-in choice.
 
 ## Data flow
 
