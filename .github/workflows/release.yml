@@ -1,0 +1,74 @@
+name: Build and release extensions
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: ${{ !contains(github.event.head_commit.message, '[skip release]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the triggering commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect release type
+        id: release_type
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          source_branch="$(gh api \
+            -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
+            --jq 'map(select(.base.ref == "main")) | .[0].head.ref // ""')"
+          if [ "$source_branch" = "development" ]; then
+            echo "kind=minor" >> "$GITHUB_OUTPUT"
+          else
+            echo "kind=patch" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update main and bump version
+        id: version
+        env:
+          RELEASE_KIND: ${{ steps.release_type.outputs.kind }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout main
+          git pull --ff-only origin main
+          version="$(node scripts/bump-version.mjs "$RELEASE_KIND")"
+          git add manifest.json package.json
+          git commit -m "chore(release): v${version} [skip release]"
+          git push origin main
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Run checks
+        run: npm run check
+
+      - name: Build browser packages
+        run: npm run build
+
+      - name: Create tag and GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_KIND: ${{ steps.release_type.outputs.kind }}
+        run: |
+          git tag "v${VERSION}"
+          git push origin "v${VERSION}"
+          gh release create "v${VERSION}" \
+            "dist/x-geoblock-chrome-v${VERSION}.zip" \
+            "dist/x-geoblock-firefox-v${VERSION}.xpi" \
+            --target "$(git rev-parse HEAD)" \
+            --title "X GeoBlock v${VERSION}" \
+            --generate-notes

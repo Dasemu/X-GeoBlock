@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>X GeoBlock settings</title><link rel="stylesheet" href="options.css"></head>
+<body><main>
+  <h1>X GeoBlock</h1><p class="lead">Hide posts based on the country shown in an account's About page.</p>
+  <form id="settings">
+    <label class="check"><input id="enabled" type="checkbox"> Enable filtering</label>
+    <label for="blacklist">Blocked countries</label>
+    <p class="hint">Enter one country per line, exactly as X displays it.</p>
+    <textarea id="blacklist" rows="10" spellcheck="false"></textarea>
+    <label for="ttl">Cache duration (hours)</label><input id="ttl" type="number" min="1" max="8760">
+    <label class="check"><input id="placeholder" type="checkbox"> Show a clickable placeholder for hidden posts</label>
+    <div class="actions"><button type="submit">Save settings</button><button type="button" class="secondary" id="clear">Clear user cache</button></div>
+    <p id="status" role="status"></p>
+  </form>
+</main><script src="../lib/config.js"></script><script src="options.js"></script></body></html>

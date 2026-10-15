@@ -1,0 +1,13 @@
+{
+  "name": "x-geoblock",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser extension that hides X posts based on account country.",
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check background.js && node --check content.js && node --check lib/config.js && node --check lib/parser.js && node --check offscreen/offscreen.js && node --check options/options.js && node --check popup/popup.js && node --check scripts/build.mjs && node --check scripts/bump-version.mjs && node --test",
+    "build": "node scripts/build.mjs"
+  },
+  "engines": { "node": ">=18" },
+  "license": "MIT"
+}

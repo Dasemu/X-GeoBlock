@@ -1,0 +1,9 @@
+.x-geoblock-hidden:is(article), .x-geoblock-hidden > article { display: none !important; }
+.x-geoblock-hidden.x-geoblock-revealed:is(article), .x-geoblock-hidden.x-geoblock-revealed > article { display: block !important; }
+.x-geoblock-placeholder {
+  width: 100%; padding: 14px 16px; border: 0; border-bottom: 1px solid rgb(47, 51, 54);
+  background: transparent; color: rgb(113, 118, 123); font: 14px/20px system-ui, sans-serif;
+  cursor: pointer; text-align: center;
+}
+.x-geoblock-hidden:not(.x-geoblock-revealed) > .x-geoblock-placeholder { display: block; }
+.x-geoblock-hidden.x-geoblock-revealed > .x-geoblock-placeholder { display: block; opacity: .7; }
