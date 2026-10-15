@@ -3,7 +3,7 @@
 const extensionApi = globalThis.browser || chrome;
 const processed = new WeakSet();
 const hiddenByUser = new Map();
-let settings = { enabled: true, showPlaceholder: false };
+let settings = { enabled: true, showPlaceholder: false, debugMode: false };
 let scanQueued = false;
 
 initialize();
@@ -15,7 +15,8 @@ async function initialize() {
     return;
   }
   if (window.top !== window) return;
-  settings = await extensionApi.storage.sync.get({ enabled: true, showPlaceholder: false });
+  settings = await extensionApi.storage.sync.get({ enabled: true, showPlaceholder: false, debugMode: false });
+  debug("Content script initialized", { url: location.href });
   scan(document);
   new MutationObserver((mutations) => {
     if (mutations.some((mutation) => mutation.addedNodes.length)) scheduleScan();
@@ -44,9 +45,16 @@ extensionApi.storage.onChanged.addListener((changes, area) => {
   if (area !== "sync") return;
   if (changes.enabled) settings.enabled = changes.enabled.newValue;
   if (changes.showPlaceholder) settings.showPlaceholder = changes.showPlaceholder.newValue;
+  if (changes.debugMode) settings.debugMode = changes.debugMode.newValue;
   restoreAll();
   document.querySelectorAll("article").forEach((article) => processed.delete(article));
   if (settings.enabled) scheduleScan();
+});
+
+extensionApi.runtime.onMessage.addListener((message) => {
+  if (message?.type === "debug-event" && settings.debugMode) {
+    console.debug("[X GeoBlock]", message.event, message.data || {});
+  }
 });
 
 function scheduleScan() {
@@ -68,11 +76,14 @@ async function processArticle(article) {
   if (processed.has(article)) return;
   const identity = getTweetIdentity(article);
   if (!identity) return;
+  debug("Post author detected", identity);
   processed.add(article);
   article.dataset.xGeoBlockState = "checking";
 
   try {
-    const result = await extensionApi.runtime.sendMessage({ type: "lookup-user", username: identity.username });
+    const followingHint = await getFollowingHint(article, identity.username);
+    debug("Following hint resolved", { username: identity.username, followingHint });
+    const result = await extensionApi.runtime.sendMessage({ type: "lookup-user", username: identity.username, followingHint });
     if (!article.isConnected || !result?.ok) {
       delete article.dataset.xGeoBlockState;
       return;
@@ -80,9 +91,28 @@ async function processArticle(article) {
     article.dataset.xGeoBlockCountry = result.country || "unknown";
     if (result.blocked) hideArticle(article, identity.username, result.country);
     else article.dataset.xGeoBlockState = result.following ? "followed" : "allowed";
-  } catch (_) {
+    debug("Post decision applied", { username: identity.username, ...result });
+  } catch (error) {
+    debug("Post lookup failed", { username: identity.username, error: error.message });
     delete article.dataset.xGeoBlockState;
   }
+}
+
+function getFollowingHint(article, username) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      article.removeEventListener("x-geoblock-following-response", finish);
+      const value = article.dataset.xGeoBlockFollowing;
+      resolve(value === "true" ? true : value === "false" ? false : null);
+    };
+    article.dataset.xGeoBlockRequestUser = username;
+    article.addEventListener("x-geoblock-following-response", finish, { once: true });
+    article.dispatchEvent(new Event("x-geoblock-following-request"));
+    setTimeout(finish, 150);
+  });
 }
 
 function getTweetIdentity(article) {
@@ -95,6 +125,7 @@ function getTweetIdentity(article) {
 }
 
 function hideArticle(article, username, country) {
+  debug("Hiding post", { username, country });
   article.dataset.xGeoBlockState = "blocked";
   const container = article.closest('[data-testid="cellInnerDiv"]') || article;
   container.classList.add("x-geoblock-hidden");
@@ -110,6 +141,10 @@ function hideArticle(article, username, country) {
     placeholder.addEventListener("click", () => container.classList.toggle("x-geoblock-revealed"));
     container.prepend(placeholder);
   }
+}
+
+function debug(event, data = {}) {
+  if (settings.debugMode) console.debug("[X GeoBlock]", event, data);
 }
 
 function restoreAll() {

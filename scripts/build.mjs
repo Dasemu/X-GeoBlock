@@ -8,7 +8,7 @@ const dist = join(root, "dist");
 const baseManifest = JSON.parse(readFileSync(join(root, "manifest.json"), "utf8"));
 const version = baseManifest.version;
 const sharedFiles = [
-  "background.js", "content.js", "content.css", "icons", "lib", "options", "popup"
+  "background.js", "content.js", "content.css", "page-bridge.js", "icons", "lib", "options", "popup"
 ];
 
 rmSync(dist, { recursive: true, force: true });
@@ -30,7 +30,7 @@ const firefoxManifest = structuredClone(baseManifest);
 delete firefoxManifest.minimum_chrome_version;
 firefoxManifest.permissions = firefoxManifest.permissions.filter((permission) => permission !== "offscreen");
 firefoxManifest.background = {
-  scripts: ["lib/config.js", "lib/parser.js", "background.js"]
+  scripts: ["lib/config.js", "lib/cloud-cache.js", "lib/parser.js", "background.js"]
 };
 firefoxManifest.browser_specific_settings = {
   gecko: {

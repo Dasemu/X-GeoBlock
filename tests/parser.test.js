@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const { findUserRecord } = require("../lib/parser.js");
 const { normalizeCountry, isBlacklisted } = require("../lib/config.js");
 const { COUNTRIES, LOCATIONS } = require("../lib/countries.js");
+const { normalizeEndpoint, hashHandle } = require("../lib/cloud-cache.js");
 
 test("finds following state in nested X user data", () => {
   const source = { data: { user: { result: { legacy: { screen_name: "Alice", following: true, location: "Berlin" } } } } };
@@ -22,4 +23,13 @@ test("offers the full country checklist with unique values", () => {
   assert.ok(COUNTRIES.some((country) => country.name === "Germany" && country.flag === "🇩🇪"));
   assert.ok(LOCATIONS.some((location) => location.name === "West Asia"));
   assert.ok(LOCATIONS.some((location) => location.name === "United Kingdom" && location.flag === "🇬🇧"));
+});
+test("accepts only HTTPS cloud cache endpoints", () => {
+  assert.equal(normalizeEndpoint("https://cache.example.com/path"), "https://cache.example.com");
+  assert.equal(normalizeEndpoint("http://cache.example.com"), "");
+  assert.equal(normalizeEndpoint("not a URL"), "");
+});
+test("hashes handles case-insensitively before cloud lookup", async () => {
+  assert.equal(await hashHandle("Alice"), await hashHandle("alice"));
+  assert.match(await hashHandle("alice"), /^[a-f0-9]{64}$/);
 });

@@ -3,10 +3,13 @@ const extensionApi = globalThis.browser || chrome;
 const form = document.querySelector("#settings");
 const enabled = document.querySelector("#enabled");
 const placeholder = document.querySelector("#placeholder");
+const debugMode = document.querySelector("#debug-mode");
 const status = document.querySelector("#status");
 const countryList = document.querySelector("#country-list");
 const countrySearch = document.querySelector("#country-search");
 const selectionCount = document.querySelector("#selection-count");
+const cloudEndpoint = document.querySelector("#cloud-endpoint");
+const cloudContribute = document.querySelector("#cloud-contribute");
 
 renderCountries();
 
@@ -15,6 +18,9 @@ async function load() {
   const value = await extensionApi.storage.sync.get(XGeoConfig.DEFAULT_SETTINGS);
   enabled.checked = value.enabled;
   placeholder.checked = value.showPlaceholder;
+  debugMode.checked = value.debugMode === true;
+  cloudEndpoint.value = value.cloudCacheEndpoint || "";
+  cloudContribute.checked = value.contributeCloudCache === true;
   const selected = new Set(value.blacklist.map(XGeoConfig.normalizeCountry));
   countryList.querySelectorAll("input").forEach((input) => {
     input.checked = selected.has(XGeoConfig.normalizeCountry(input.value));
@@ -64,10 +70,25 @@ document.querySelector("#clear-selection").addEventListener("click", () => {
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+  const endpoint = XGeoCloud.normalizeEndpoint(cloudEndpoint.value);
+  if (cloudEndpoint.value.trim() && !endpoint) {
+    status.textContent = "Enter a valid HTTPS Worker URL.";
+    return;
+  }
+  if (endpoint) {
+    const granted = await extensionApi.permissions.request({ origins: [`${endpoint}/*`] });
+    if (!granted) {
+      status.textContent = "Host permission is required to use the cloud cache.";
+      return;
+    }
+  }
   await extensionApi.storage.sync.set({
     enabled: enabled.checked,
     blacklist: Array.from(countryList.querySelectorAll("input:checked"), (input) => input.value),
-    showPlaceholder: placeholder.checked
+    showPlaceholder: placeholder.checked,
+    debugMode: debugMode.checked,
+    cloudCacheEndpoint: endpoint,
+    contributeCloudCache: Boolean(endpoint) && cloudContribute.checked
   });
   status.textContent = "Settings saved.";
   setTimeout(() => status.textContent = "", 2000);

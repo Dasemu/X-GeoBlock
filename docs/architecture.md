@@ -9,7 +9,7 @@
 5. The worker caches the result and compares the country with the configured blacklist.
 6. The content script hides the post only when the country matches and the account is not followed.
 
-Failed or ambiguous lookups fail open: the post remains visible. Empty results are never cached. Successful lookups remain cached without expiration. The user can clear the entire cache from the settings page if X changes an account's country or following relationship.
+Failed or ambiguous lookups fail open: the post remains visible. Empty results are never cached. Successful local and cloud lookups expire after 30 days. The user can clear the entire cache from the settings page at any time.
 
 ## Browser components
 

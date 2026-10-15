@@ -12,7 +12,16 @@
       <div id="country-list" class="country-list"></div>
     </fieldset>
     <label class="check"><input id="placeholder" type="checkbox"> Show a clickable placeholder for hidden posts</label>
+    <label class="check"><input id="debug-mode" type="checkbox"> Enable debug logging in the X page console</label>
+    <fieldset class="cloud-settings">
+      <legend>Collaborative cloud cache</legend>
+      <p class="hint">Optional. Confirmed results reduce requests to X. Deploy the included Cloudflare Worker and enter its HTTPS URL.</p>
+      <label for="cloud-endpoint">Worker URL</label>
+      <input id="cloud-endpoint" type="url" placeholder="https://x-geoblock-cache.example.workers.dev" autocomplete="url">
+      <label class="check"><input id="cloud-contribute" type="checkbox"> Contribute locally observed locations</label>
+      <p class="hint">Contributions send a SHA-256 hash of the public username and its location. Following relationships, posts, and your blacklist are never uploaded.</p>
+    </fieldset>
     <div class="actions"><button type="submit">Save settings</button><button type="button" class="secondary" id="clear">Clear user cache</button></div>
     <p id="status" role="status"></p>
   </form>
-</main><script src="../lib/config.js"></script><script src="../lib/countries.js"></script><script src="options.js"></script></body></html>
+</main><script src="../lib/config.js"></script><script src="../lib/countries.js"></script><script src="../lib/cloud-cache.js"></script><script src="options.js"></script></body></html>

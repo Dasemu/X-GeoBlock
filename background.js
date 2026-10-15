@@ -1,9 +1,10 @@
-if (typeof XGeoConfig === "undefined") importScripts("lib/config.js");
+if (typeof XGeoConfig === "undefined") importScripts("lib/config.js", "lib/cloud-cache.js");
 
 const extensionApi = globalThis.browser || chrome;
 
 const CACHE_KEY = "userCache";
 const FRAME_RULE_ID = 1;
+const LOCAL_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const activeRequests = new Map();
 const pendingFrameLookups = new Map();
 let queueTail = Promise.resolve();
@@ -17,7 +18,9 @@ extensionApi.runtime.onInstalled.addListener(async () => {
 
 extensionApi.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === "lookup-user") {
-    lookupUser(message.username).then(sendResponse).catch((error) => {
+    lookupUser(message.username, message.followingHint, sender?.tab?.id).then(sendResponse).catch(async (error) => {
+      const { debugMode } = await extensionApi.storage.sync.get({ debugMode: false });
+      emitDebug(sender?.tab?.id, debugMode, "Lookup failed", { username: message.username, error: error.message });
       sendResponse({ ok: false, error: error.message });
     });
     return true;
@@ -38,27 +41,61 @@ function validUsername(username) {
   return typeof username === "string" && /^[A-Za-z0-9_]{1,15}$/.test(username);
 }
 
-async function lookupUser(username) {
+async function lookupUser(username, followingHint = null, tabId = null) {
   if (!validUsername(username)) return { ok: false, error: "Invalid username" };
   const key = username.toLowerCase();
   if (activeRequests.has(key)) return activeRequests.get(key);
 
-  const promise = lookupUserInternal(username, key).finally(() => activeRequests.delete(key));
+  const promise = lookupUserInternal(username, key, followingHint, tabId).finally(() => activeRequests.delete(key));
   activeRequests.set(key, promise);
   return promise;
 }
 
-async function lookupUserInternal(username, key) {
+async function lookupUserInternal(username, key, followingHint, tabId) {
   const settings = await extensionApi.storage.sync.get(XGeoConfig.DEFAULT_SETTINGS);
+  emitDebug(tabId, settings.debugMode, "Lookup started", { username, followingHint });
   const stored = await extensionApi.storage.local.get(CACHE_KEY);
   const cache = stored[CACHE_KEY] || {};
   const cached = cache[key];
-  if (cached && (cached.country || cached.following === true)) {
+  const cacheFresh = cached && Date.now() - Number(cached.checkedAt || 0) < LOCAL_CACHE_TTL_MS;
+  if (cacheFresh && (cached.country || cached.following === true)) {
+    emitDebug(tabId, settings.debugMode, "Local cache hit", { username, country: cached.country, following: cached.following, source: cached.source || "direct" });
     return decision(cached, settings, true);
   }
+  if (cached) {
+    emitDebug(tabId, settings.debugMode, "Local cache expired or invalid", { username, checkedAt: cached.checkedAt || null });
+    delete cache[key];
+    await extensionApi.storage.local.set({ [CACHE_KEY]: cache });
+  } else emitDebug(tabId, settings.debugMode, "Local cache miss", { username });
 
-  const result = await enqueue(() => fetchAbout(username));
+  if (followingHint === true) {
+    emitDebug(tabId, settings.debugMode, "Author is followed; allowing post", { username });
+    return decision({ country: null, following: true }, settings, false);
+  }
+  if (followingHint === false && settings.cloudCacheEndpoint) {
+    try {
+      emitDebug(tabId, settings.debugMode, "Cloud cache lookup", { username, endpoint: settings.cloudCacheEndpoint });
+      const cloud = await XGeoCloud.lookup(settings.cloudCacheEndpoint, [key]);
+      const hit = cloud.get(key);
+      if (hit?.status === "confirmed" && hit.location) {
+        emitDebug(tabId, settings.debugMode, "Cloud cache hit", { username, country: hit.location, confidence: hit.confidence, confirmations: hit.confirmations });
+        const record = { country: hit.location, following: false, checkedAt: Date.now(), source: "cloud" };
+        cache[key] = record;
+        await extensionApi.storage.local.set({ [CACHE_KEY]: cache });
+        return decision(record, settings, false);
+      }
+      emitDebug(tabId, settings.debugMode, "Cloud cache miss", { username });
+    } catch (error) {
+      emitDebug(tabId, settings.debugMode, "Cloud cache error; falling back to X", { username, error: error.message });
+      // Cloud cache failure must never prevent the direct X lookup.
+    }
+  }
+
+  emitDebug(tabId, settings.debugMode, "Direct X lookup started", { username });
+  const lookupLog = (event, data = {}) => emitDebug(tabId, settings.debugMode, event, { username, ...data });
+  const result = await enqueue(() => fetchAbout(username, lookupLog));
   const record = { ...result, checkedAt: Date.now() };
+  emitDebug(tabId, settings.debugMode, "Direct X lookup completed", { username, country: record.country, following: record.following });
   if (record.country || record.following === true) {
     cache[key] = record;
     await extensionApi.storage.local.set({ [CACHE_KEY]: cache });
@@ -66,7 +103,23 @@ async function lookupUserInternal(username, key) {
     delete cache[key];
     await extensionApi.storage.local.set({ [CACHE_KEY]: cache });
   }
-  return decision(record, settings, false);
+  if (record.country && settings.contributeCloudCache && settings.cloudCacheEndpoint) {
+    emitDebug(tabId, settings.debugMode, "Cloud contribution queued", { username, country: record.country });
+    XGeoCloud.report(settings.cloudCacheEndpoint, key, record.country, extensionApi.runtime.getManifest().version)
+      .then(() => emitDebug(tabId, settings.debugMode, "Cloud contribution accepted", { username }))
+      .catch((error) => emitDebug(tabId, settings.debugMode, "Cloud contribution failed", { username, error: error.message }));
+  }
+  const finalDecision = decision(record, settings, false);
+  emitDebug(tabId, settings.debugMode, "Decision", { username, country: finalDecision.country, following: finalDecision.following, blocked: finalDecision.blocked });
+  return finalDecision;
+}
+
+function emitDebug(tabId, enabled, event, data = {}) {
+  if (!enabled) return;
+  console.debug("[X GeoBlock]", event, data);
+  if (Number.isInteger(tabId)) {
+    extensionApi.tabs.sendMessage(tabId, { type: "debug-event", event, data }).catch(() => {});
+  }
 }
 
 function decision(record, settings, cached) {
@@ -90,21 +143,25 @@ function enqueue(task) {
   return run;
 }
 
-async function fetchAbout(username) {
+async function fetchAbout(username, log = () => {}) {
   try {
     const response = await fetch(`https://x.com/${encodeURIComponent(username)}/about`, {
       credentials: "include",
       headers: { "Accept-Language": "en-US,en;q=0.9" },
       redirect: "follow"
     });
+    log("Background HTTP response", { status: response.status, finalUrl: response.url });
     if (response.ok && !/\/i\/flow\/login/i.test(response.url)) {
       const parsed = await parseFetchedHtml(await response.text(), username);
+      log("Background HTML parsed", { country: parsed?.country || null, following: parsed?.following ?? null });
       if (parsed?.country) return parsed;
     }
-  } catch (_) {
+  } catch (error) {
+    log("Background HTTP lookup failed", { error: error.message });
     // X frequently serves an incomplete SPA shell to extension fetches.
   }
-  return lookupViaBackgroundFrame(username);
+  log("Falling back to isolated background frame");
+  return lookupViaBackgroundFrame(username, log);
 }
 
 async function parseFetchedHtml(html, username) {
@@ -116,16 +173,17 @@ async function parseFetchedHtml(html, username) {
   return extensionApi.runtime.sendMessage({ type: "parse-about-html", html, username });
 }
 
-async function lookupViaBackgroundFrame(username) {
+async function lookupViaBackgroundFrame(username, log = () => {}) {
   const key = username.toLowerCase();
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       pendingFrameLookups.delete(key);
       removeBackgroundFrame(key);
+      log("Isolated background frame timed out");
       reject(new Error(`Timed out while rendering @${username}'s About page in the background`));
     }, 25000);
-    pendingFrameLookups.set(key, { resolve, reject, timer });
-    createBackgroundFrame(username).catch((error) => {
+    pendingFrameLookups.set(key, { resolve, reject, timer, log });
+    createBackgroundFrame(username).then(() => log("Isolated background frame created")).catch((error) => {
       clearTimeout(timer);
       pendingFrameLookups.delete(key);
       reject(error);
@@ -137,6 +195,7 @@ function finishFrameLookup(message) {
   const key = String(message.username).toLowerCase();
   const pending = pendingFrameLookups.get(key);
   if (!pending) return;
+  pending.log("Rendered About page reported a result", { country: message.country || null, following: message.following ?? null });
   clearTimeout(pending.timer);
   pendingFrameLookups.delete(key);
   pending.resolve({

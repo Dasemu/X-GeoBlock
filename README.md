@@ -6,11 +6,13 @@ X GeoBlock is a Manifest V3 browser extension for Chromium and Firefox. While yo
 
 - Processes posts already on the page and posts loaded by infinite scrolling.
 - Performs authenticated About-page requests in the background. If X returns only its empty application shell, an isolated invisible extension frame renders the account data without opening tabs or windows.
-- Caches account results locally without expiration until you clear the cache.
+- Caches account results locally for 30 days, with manual clearing available.
 - Coalesces duplicate lookups and spaces network requests to reduce load on X.
 - Skips followed accounts.
 - Provides a searchable country and region checklist with flags, an enable switch, and optional hidden-post placeholders.
-- Stores all settings and lookup results in browser extension storage. No data is sent to third parties.
+- Includes opt-in debug logging for every lookup and filtering decision.
+- By default, stores all settings and lookup results only in browser extension storage. No data is sent to third parties unless cloud contribution is explicitly enabled.
+- Supports an optional, self-hosted Cloudflare Worker + D1 collaborative cache with signed opt-in contributions and three-installation consensus.
 
 ## Install from source in Chromium
 
@@ -41,7 +43,7 @@ npm run check
 npm run build
 ```
 
-After editing a file, reload the extension and refresh the X tab. See [Architecture](docs/architecture.md), [Releases](docs/releases.md), [Privacy](docs/privacy.md), and [Contributing](CONTRIBUTING.md).
+After editing a file, reload the extension and refresh the X tab. See [Architecture](docs/architecture.md), [Cloud cache](docs/cloud-cache.md), [Releases](docs/releases.md), [Privacy](docs/privacy.md), and [Contributing](CONTRIBUTING.md).
 
 ## Limitations
 
